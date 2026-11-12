@@ -1,0 +1,40 @@
+diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
+index 47089e6dec..380a4dd2a1 100644
+--- a/third_party/blink/renderer/core/dom/element.cc
++++ b/third_party/blink/renderer/core/dom/element.cc
+@@ -8172,6 +8172,11 @@ ShadowRoot* Element::OpenShadowRoot() const {
+   return root && root->GetMode() == ShadowRootMode::kOpen ? root : nullptr;
+ }
+ 
++ShadowRoot* Element::FakeShadowRoot() const {
++  ShadowRoot* root = GetShadowRoot();
++  return root;
++}
++
+ ShadowRoot* Element::ClosedShadowRoot() const {
+   ShadowRoot* root = GetShadowRoot();
+   if (!root) {
+diff --git a/third_party/blink/renderer/core/dom/element.h b/third_party/blink/renderer/core/dom/element.h
+index 3f61c16dac..325604cf96 100644
+--- a/third_party/blink/renderer/core/dom/element.h
++++ b/third_party/blink/renderer/core/dom/element.h
+@@ -1137,6 +1137,7 @@ class CORE_EXPORT Element : public ContainerNode {
+     return HasShadowRoot() ? GetShadowRootInternal() : nullptr;
+   }
+   ShadowRoot* OpenShadowRoot() const;
++  ShadowRoot* FakeShadowRoot() const;
+   ShadowRoot* ClosedShadowRoot() const;
+   ShadowRoot* AuthorShadowRoot() const;
+   ShadowRoot* UserAgentShadowRoot() const;
+diff --git a/third_party/blink/renderer/core/dom/element.idl b/third_party/blink/renderer/core/dom/element.idl
+index db8e9f8bfe..5beab26eaa 100644
+--- a/third_party/blink/renderer/core/dom/element.idl
++++ b/third_party/blink/renderer/core/dom/element.idl
+@@ -81,6 +81,7 @@ dictionary ParseHTMLUnsafeOptions {
+ 
+     [RaisesException, MeasureAs=ElementAttachShadow] ShadowRoot attachShadow(ShadowRootInit shadowRootInitDict);
+     [PerWorldBindings, ImplementedAs=OpenShadowRoot] readonly attribute ShadowRoot? shadowRoot;
++    [PerWorldBindings, ImplementedAs=FakeShadowRoot] readonly attribute ShadowRoot? fakeShadowRoot;
+ 
+     [RaisesException] Element? closest(DOMString selectors);
+     [RaisesException] boolean matches(DOMString selectors);
