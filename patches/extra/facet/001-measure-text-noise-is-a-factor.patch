@@ -1,0 +1,17 @@
+diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
+index 16d7fb80cd..f6901f806e 100644
+--- a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
++++ b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
+@@ -1605,8 +1605,10 @@ TextMetrics* BaseRenderingContext2D::measureText(const String& text) {
+     uint32_t hash_val_x = std::hash<std::string>{}(combined_rects_x);
+      // 映射到[-0.5, 0.5]范围
+     double norm_x = (hash_val_x & 0xFFFFFFFF) / 4294967295.0 - 0.5;
+-    // 使用 0.00001 作为因子 (相当于原来的 1/100000.0)
+-    double noise_x = norm_x * 0.00001;
++    // TextMetrics::Shuffle() multiplies every metric by its argument, so the
++    // noise has to be a factor around 1. Passing the bare offset (about
++    // 0.000005) scaled all text metrics down to almost zero.
++    double noise_x = 1.0 + norm_x * 0.00001;
+     if (HostAsOffscreenCanvas()) {
+       if (auto* window = DynamicTo<LocalDOMWindow>(GetTopExecutionContext())) {
+         if (window->GetFrame() && window->GetFrame()->GetDocument() && text.length() > 0) {

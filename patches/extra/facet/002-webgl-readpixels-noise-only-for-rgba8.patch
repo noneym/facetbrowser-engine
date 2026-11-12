@@ -1,0 +1,40 @@
+diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
+index ecf3655069..2b1b06a0da 100644
+--- a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
++++ b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
+@@ -5428,26 +5428,17 @@ void WebGLRenderingContextBase::ReadPixelsHelper(GLint x,
+     if (command_line->HasSwitch(::switches::kFingerprint) &&
+         (!command_line->HasSwitch(::switches::kDisableSpoofing) ||
+          command_line->GetSwitchValueASCII(::switches::kDisableSpoofing).find("canvas") == std::string::npos)) {
+-      // 构建 SkImageInfo 来描述像素格式
+-      SkColorType color_type;
+-      SkAlphaType alpha_type = kUnpremul_SkAlphaType;
+-
+-      // 根据 WebGL 格式映射到 Skia 格式
++      // The noise function addresses the buffer as width * height pixels of
++      // the Skia colour type it is given. Only RGBA / UNSIGNED_BYTE has that
++      // layout here: RGB is 3 bytes per pixel (Skia's 888x is 4), and the
++      // packed 16-bit and float types differ again, so treating them as
++      // RGBA8888 wrote past the end of the caller's buffer. Anything else is
++      // left as read.
+       if (format == GL_RGBA && type == GL_UNSIGNED_BYTE) {
+-        color_type = kRGBA_8888_SkColorType;
+-      } else if (format == GL_RGB && type == GL_UNSIGNED_BYTE) {
+-        color_type = kRGB_888x_SkColorType;
+-      } else if (format == GL_ALPHA && type == GL_UNSIGNED_BYTE) {
+-        color_type = kAlpha_8_SkColorType;
+-      } else {
+-        // 对于其他格式，假设为 RGBA
+-        color_type = kRGBA_8888_SkColorType;
++        SkImageInfo image_info = SkImageInfo::Make(
++            width, height, kRGBA_8888_SkColorType, kUnpremul_SkAlphaType);
++        StaticBitmapImage::ShuffleSubchannelColorData(data, image_info);
+       }
+-
+-      SkImageInfo image_info = SkImageInfo::Make(width, height, color_type, alpha_type);
+-
+-      // 调用指纹保护函数修改已读取的像素数据
+-      StaticBitmapImage::ShuffleSubchannelColorData(data, image_info);
+     }
+   }
+ }
