@@ -139,6 +139,7 @@ def _parse_deps(deps_text):
     """Returns a dict of parsed DEPS data"""
     deps_globals = {'__builtins__': None}
     deps_globals['Var'] = _deps_var(deps_globals)
+    deps_globals['Str'] = str
     exec(deps_text, deps_globals) #pylint: disable=exec-used
     return deps_globals
 
@@ -150,7 +151,7 @@ def _download_googlesource_file(download_session, repo_url, version, relative_pa
     """
     if 'googlesource.com' not in repo_url:
         raise ValueError(f'Repository URL is not a googlesource.com URL: {repo_url}')
-    full_url = repo_url + f'/+/{version}/{str(relative_path)}?format=TEXT'
+    full_url = repo_url + f'/+/{version}/{Path(relative_path).as_posix()}?format=TEXT'
     get_logger().debug('Downloading: %s', full_url)
     response = download_session.get(full_url)
     if response.status_code == 404:
@@ -196,11 +197,11 @@ def _process_deps_entries(deps_globals, child_deps_tree, child_path, deps_use_re
         grandchild_deps_tree = None # Delaying creation of dict() until it's needed
         for recursedeps_item in deps_globals.get('recursedeps', tuple()):
             if isinstance(recursedeps_item, str):
-                if recursedeps_item == str(dep_path):
+                if recursedeps_item == dep_path.as_posix():
                     grandchild_deps_tree = 'DEPS'
             else: # Some sort of iterable
                 recursedeps_item_path, recursedeps_item_depsfile = recursedeps_item
-                if recursedeps_item_path == str(dep_path):
+                if recursedeps_item_path == dep_path.as_posix():
                     grandchild_deps_tree = recursedeps_item_depsfile
         if grandchild_deps_tree is None:
             # This dep is not recursive; i.e. it is fully loaded
