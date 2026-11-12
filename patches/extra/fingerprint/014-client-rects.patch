@@ -66,11 +66,11 @@ index 380a4dd2a1..be2e95e39e 100644
  }
  
 +bool Element::ShouldSkipClientRectsOffset() const {
-+  if (!GetLayoutObject() || !GetLayoutObject()->Style()) {
++  if (!GetLayoutObject()) {
 +    return false;
 +  }
 +
-+  const ComputedStyle& style = *GetLayoutObject()->Style();
++  const ComputedStyle& style = GetLayoutObject()->Style();
 +
 +  // 检查是否为绝对定位
 +  if (style.GetPosition() != EPosition::kAbsolute) {
