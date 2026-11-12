@@ -16,6 +16,7 @@ import base64
 import email.utils
 import json
 import logging
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -81,6 +82,9 @@ except ImportError:
 
 _ROOT_DIR = Path(__file__).resolve().parent.parent
 _SRC_PATH = Path('src')
+_CHROMIUM_REPO_URL = 'https://chromium.googlesource.com/chromium/src.git'
+_CHROMIUM_GITHUB_RAW_URL = 'https://raw.githubusercontent.com/chromium/chromium'
+_RELEASE_TAG_REGEX = re.compile(r'[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+')
 
 
 class _PatchValidationError(Exception):
@@ -151,6 +155,14 @@ def _download_googlesource_file(download_session, repo_url, version, relative_pa
     """
     if 'googlesource.com' not in repo_url:
         raise ValueError(f'Repository URL is not a googlesource.com URL: {repo_url}')
+    if repo_url == _CHROMIUM_REPO_URL and _RELEASE_TAG_REGEX.fullmatch(version):
+        # Release tags of chromium/src are mirrored on GitHub, which does not
+        # throttle the way googlesource.com does after a few hundred requests.
+        mirror_url = f'{_CHROMIUM_GITHUB_RAW_URL}/{version}/{Path(relative_path).as_posix()}'
+        get_logger().debug('Downloading: %s', mirror_url)
+        response = download_session.get(mirror_url)
+        if response.status_code == 200:
+            return response.content.decode('UTF-8')
     full_url = repo_url + f'/+/{version}/{Path(relative_path).as_posix()}?format=TEXT'
     get_logger().debug('Downloading: %s', full_url)
     response = download_session.get(full_url)
@@ -397,10 +409,7 @@ def _initialize_deps_tree():
 
     download_session is an active requests.Session() object
     """
-    root_deps_tree = {
-        _SRC_PATH: ('https://chromium.googlesource.com/chromium/src.git', get_chromium_version(),
-                    'DEPS')
-    }
+    root_deps_tree = {_SRC_PATH: (_CHROMIUM_REPO_URL, get_chromium_version(), 'DEPS')}
     return root_deps_tree
 
 
@@ -635,7 +644,10 @@ def _get_files_under_test(args, required_files, parser):
             for file_path, file_content in files_under_test.items():
                 if not (args.cache_remote / file_path).parent.exists():
                     (args.cache_remote / file_path).parent.mkdir(parents=True)
-                with (args.cache_remote / file_path).open('w', encoding=ENCODING) as cache_file:
+                # newline='\n': keep the files as downloaded, also on Windows,
+                # so GNU patch can be run on the cache directly.
+                with (args.cache_remote / file_path).open('w', encoding=ENCODING,
+                                                          newline='\n') as cache_file:
                     cache_file.write('\n'.join(file_content))
             parser.exit()
     return files_under_test
