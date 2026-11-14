@@ -10,9 +10,12 @@ The fingerprint patches come from
 (BSD-3-Clause), whose last published source is for Chromium 148. This
 repository carries them forward to current Chromium and fixes bugs in them.
 
-> **Status: patches ported, not built yet.** The whole series applies cleanly
-> to Chromium 157.0.8103.50 sources. Nothing here has been compiled or run so
-> far, and there are no binaries to download. See [What is verified](#what-is-verified).
+> **Status: `main` builds and runs on Windows x64.** Chromium 157.0.8103.50
+> with the whole series compiles, links and passes the checks in
+> [What is verified](#what-is-verified). There is no release yet: the binaries
+> are GitHub Actions artifacts of the
+> [Windows packaging repository](https://github.com/noneym/facetbrowser-engine-windows).
+> The `baseline-148` build is still running; macOS has not been built.
 
 ## Branches
 
@@ -54,6 +57,19 @@ those merges stay clean; this file lives in `.github/` for the same reason.
 - The Chrome and Edge version lists in `components/ungoogled/fingerprint_data.h`
   were updated to real 157 releases.
 
+Found by the first compile and link:
+
+- `LayoutObject::Style()` returns `const ComputedStyle&` instead of a
+  pointer (`014-client-rects`).
+- `partition_alloc::MaxDirectMapped()` is now `MaxAllocationSize()` in
+  `partition_alloc/partition_alloc_public_constants.h`, which has to be
+  included explicitly (`013-canvas-toDataURL`).
+- `third_party/blink/common` reads the fingerprint switches in
+  `user_agent_metadata.cc` without depending on
+  `//components/ungoogled:ungoogled_switches`. `chrome.dll` gets the symbols
+  through other targets; `chromedriver.exe` does not and failed to link. The
+  dependency is now declared (`002-user-agent-fingerprint`).
+
 ### Fixes (`patches/extra/facet/`)
 
 | Patch | Problem in upstream |
@@ -63,25 +79,50 @@ those merges stay clean; this file lives in `.github/` for the same reason.
 
 ## What is verified
 
+Windows x64, Chromium 157.0.8103.50, engine commit `ca924222`, built by
+[run 43538885643](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43538885643)
+(`ungoogled-chromium_157.0.8103.50-1.1_windows_x64.zip`, SHA-256
+`a322cabd612032bf02515ea788ee591499b75fca5d54918903db27b48cfa0d43`). "148"
+below is the engine FacetBrowser ships today
+(`ungoogled-chromium_148.0.7778.215-1.1_windows_x64.zip` from
+fingerprint-chromium), measured on the same machine with
+`facet/fingerprint_probe.mjs`.
+
 | Check | Result |
 |---|---|
 | `baseline-148` equals upstream's published 148 tree | Yes, same git tree hash |
 | All 128 patches on `main` apply to pristine Chromium 157.0.8103.50 (`validate_patches.py`) | Pass |
 | Validator rejects an unported patch (negative control) | Fails as expected |
-| Compiles | **Not tried** |
-| Fingerprint behaviour (CreepJS, BrowserScan, Pixelscan) | **Not tested** |
-| Windows x64 / macOS arm64 packages | **Not built** |
+| `main` compiles and links (`chrome`, `chromedriver`, `mini_installer`) | Pass |
+| Starts with `--fingerprint=<seed> --fingerprint-platform=windows --fingerprint-brand=Chrome` | Pass. UA and client hints report Google Chrome 157, `navigator.webdriver` is `false` |
+| Same seed twice gives the same fingerprint | Pass, 161 of 161 probe values equal |
+| A different seed changes canvas, WebGL, audio, client rects, fonts, `measureText`, hardware concurrency, device memory and GPU | Pass, 42 values differ, the rest are equal |
+| Same seed on 148 and 157 | Canvas (`toDataURL`, `toBlob`, `getImageData`), WebGL `RGBA8` readback, client rects, fonts, GPU strings and WebGL parameters are identical. The differences are listed under this table |
+| `001-measure-text-noise-is-a-factor` | Pass. Width of the probe's test string in 16px Arial: 410.03 (0.0019 on 148) |
+| `002-webgl-readpixels-noise-only-for-rgba8` | Pass. Bytes written past the end of an `R8` read: 0 (13 on 148). `RGB565`, `R8` and `RGBA32F` reads are returned unmodified |
+| Canvas readback stability | No renderer crash in 200 rounds of the probe's readback stress loop, with and without the switches; the source canvas is unchanged afterwards |
+| [CreepJS](https://abrahamjuliot.github.io/creepjs/) | 0% headless, 0% stealth, 19% "like headless". Same three numbers as 148 |
+| [BrowserScan](https://www.browserscan.net/) | Fingerprint authenticity 100%, bot detection "No" |
+| [Pixelscan](https://pixelscan.net/fingerprint-check) | "Masking detected", "No automated behavior detected". 148 gets the same verdict, so this is inherited, not a regression of the port |
+| `baseline-148` Windows x64 package and its comparison with the shipped engine | **Build still running** ([run 43196114201](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43196114201)) |
+| macOS arm64 package | **Not built** |
 
-Things to watch at the first compile, because the surrounding Chromium code
-could only be read, not built:
+Differences between 148 and 157 for the same seed, other than the version
+strings:
 
-- `Element::ShouldSkipClientRectsOffset()` uses `ComputedStyle::Top()` /
-  `Left()` as `const Length&`; the inset accessors may have changed type.
-- `HTMLCanvasElement::ToDataURLInternal()` relies on a transitive include
-  for `partition_alloc::MaxDirectMapped()`.
-- `components/embedder_support` and several Blink targets include
-  `components/ungoogled/ungoogled_switches.h` without a GN dependency, as
-  upstream did.
+- `measureText()` and the non-`RGBA8` `readPixels()` formats: the two fixes.
+- Audio: the rendered samples differ slightly (sum 124.040574 against
+  124.040578). They differ the same way without `--fingerprint`, so this is a
+  change in Chromium, not in the noise.
+- `screen.colorDepth` is 24 on 157 and 32 on 148 on the same display, also
+  without `--fingerprint`. Not caused by the fingerprint patches.
+- `navigator.userAgentData.brands` uses Chromium 157's GREASE brand and
+  ordering (`Not-A.Brand`).
+
+Not covered by these checks: `--fingerprint-platform=linux|macos`, the Edge,
+Opera and Vivaldi brands, `--timezone`, `--disable-spoofing`, and profiles
+launched by FacetBrowser itself. The site results are a single visit each
+from one machine.
 
 Known behaviour inherited from upstream, not changed here:
 
@@ -90,9 +131,11 @@ Known behaviour inherited from upstream, not changed here:
   scripts. Automation that relies on live `console` events has to poll.
 - `ImageDataBuffer::EncodeImage()` adds noise in place, which can write into
   pixel memory owned by the source image. Upstream 150 has open crash reports
-  in this area; treat it as the first suspect if readback crashes.
+  in this area. The stress loop above did not reproduce a crash; it is still
+  the first suspect if readback crashes.
 - Screen size, device scale factor and colour depth switches are declared
   but nothing reads them.
+- `chromedriver.exe` is built but not included in the zip.
 
 ## Command line switches
 
@@ -131,13 +174,35 @@ Move to a new Chromium version:
 
 ## Building
 
-Not set up yet. The plan follows ungoogled-chromium: its
-[Windows](https://github.com/ungoogled-software/ungoogled-chromium-windows)
-and [macOS](https://github.com/ungoogled-software/ungoogled-chromium-macos)
-packaging repositories use the main repository as a submodule, so forks of
-those pointing at this repository produce the installers. First target is
-`baseline-148`, to confirm the pipeline reproduces the current engine, then
-`main`.
+Windows x64 is built by
+[noneym/facetbrowser-engine-windows](https://github.com/noneym/facetbrowser-engine-windows),
+a fork of ungoogled-chromium-windows that uses this repository as its
+submodule. Its `main` branch pins `main` here, its `baseline-148` branch pins
+`baseline-148`.
+
+```sh
+gh workflow run build-x64.yml -R noneym/facetbrowser-engine-windows --ref main
+```
+
+The output is the `chromium` artifact of the run (zip and installer, kept for
+30 days). On GitHub's free runners a build from scratch is a chain of up to
+16 jobs of about 4.5 hours each; `main` needed 9 of them.
+
+Two additions to the fork keep a failed build from costing days:
+
+- **Preflight.** Before the full build, `build.py` compiles only the files
+  that `patches/extra/fingerprint/` and `patches/extra/facet/` touch. A
+  compile error in a ported patch shows up in the first hour. It does not
+  catch link errors.
+- **Resume.** `-f resume_run_id=<run id>` starts from the source tree an
+  earlier run uploaded instead of from scratch (the tree is kept for 4 days).
+  Patch changes made since that run have to be added to the fork's `hotfix/`
+  directory, see `hotfix/README.md` there. The `chromedriver` link fix was
+  built this way in 1.5 hours.
+
+macOS is not set up. The plan is the same: a fork of
+[ungoogled-chromium-macos](https://github.com/ungoogled-software/ungoogled-chromium-macos)
+with this repository as its submodule.
 
 ## License and credits
 
