@@ -180,6 +180,18 @@ index 957d0939ad..23c6f5677c 100644
      // The `Sec-CH-UA` client hint is attached to all outgoing requests. This is
      // (intentionally) different than other client hints.
      // It's barred behind ShouldAddClientHints to make sure it's controlled by
+diff --git a/third_party/blink/common/BUILD.gn b/third_party/blink/common/BUILD.gn
+index cea2f37dd0..91096423e0 100644
+--- a/third_party/blink/common/BUILD.gn
++++ b/third_party/blink/common/BUILD.gn
+@@ -308,6 +308,7 @@ source_set("common") {
+     "//base",
+     "//build:android_buildflags",
+     "//build:chromecast_buildflags",
++    "//components/ungoogled:ungoogled_switches",
+     "//media/capture:capture_base",
+     "//media/capture/mojom:video_capture_mojom_support",
+     "//mojo/public/cpp/system",
 diff --git a/third_party/blink/common/user_agent/user_agent_metadata.cc b/third_party/blink/common/user_agent/user_agent_metadata.cc
 index 905d30f092..881f2f3d0a 100644
 --- a/third_party/blink/common/user_agent/user_agent_metadata.cc
