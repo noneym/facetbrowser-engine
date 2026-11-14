@@ -10,12 +10,13 @@ The fingerprint patches come from
 (BSD-3-Clause), whose last published source is for Chromium 148. This
 repository carries them forward to current Chromium and fixes bugs in them.
 
-> **Status: `main` builds and runs on Windows x64.** Chromium 157.0.8103.50
-> with the whole series compiles, links and passes the checks in
+> **Status: both branches build and run on Windows x64.** `baseline-148`
+> reproduces the behaviour of the engine FacetBrowser ships today, and
+> Chromium 157.0.8103.50 with the ported series passes the checks in
 > [What is verified](#what-is-verified). There is no release yet: the binaries
 > are GitHub Actions artifacts of the
 > [Windows packaging repository](https://github.com/noneym/facetbrowser-engine-windows).
-> The `baseline-148` build is still running; macOS has not been built.
+> macOS has not been built.
 
 ## Branches
 
@@ -104,7 +105,8 @@ fingerprint-chromium), measured on the same machine with
 | [CreepJS](https://abrahamjuliot.github.io/creepjs/) | 0% headless, 0% stealth, 19% "like headless". Same three numbers as 148 |
 | [BrowserScan](https://www.browserscan.net/) | Fingerprint authenticity 100%, bot detection "No" |
 | [Pixelscan](https://pixelscan.net/fingerprint-check) | "Masking detected", "No automated behavior detected". 148 gets the same verdict, so this is inherited, not a regression of the port |
-| `baseline-148` Windows x64 package and its comparison with the shipped engine | **Build still running** ([run 43196114201](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43196114201)) |
+| `baseline-148` builds on the same pipeline ([run 43196114201](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43196114201), zip SHA-256 `8f94064db4236d2d63fe30e4d160b23e42628b508e7d3b5a5edff264f1d1129b`) | Pass |
+| Our `baseline-148` build against the shipped 148 engine | Same behaviour: 161 of 161 probe values equal for seed 1000, for seed 2000 and without `--fingerprint`, including the `measureText` and `readPixels` bugs. Same file list. The binaries are not byte-identical; our `chrome.dll` is 277 MB against 308 MB, so the shipped engine was built with different settings |
 | macOS arm64 package | **Not built** |
 
 Differences between 148 and 157 for the same seed, other than the version
@@ -186,7 +188,7 @@ gh workflow run build-x64.yml -R noneym/facetbrowser-engine-windows --ref main
 
 The output is the `chromium` artifact of the run (zip and installer, kept for
 30 days). On GitHub's free runners a build from scratch is a chain of up to
-16 jobs of about 4.5 hours each; `main` needed 9 of them.
+16 jobs of about 4.5 hours each; both branches needed 9 of them.
 
 Two additions to the fork keep a failed build from costing days:
 
