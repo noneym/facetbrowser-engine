@@ -13,10 +13,10 @@ repository carries them forward to current Chromium and fixes bugs in them.
 > **Status: both branches build and run on Windows x64.** `baseline-148`
 > reproduces the behaviour of the engine FacetBrowser ships today, and
 > Chromium 157.0.8103.50 with the ported series passes the checks in
-> [What is verified](#what-is-verified). There is no release yet: the binaries
-> are GitHub Actions artifacts of the
-> [Windows packaging repository](https://github.com/noneym/facetbrowser-engine-windows).
-> macOS has not been built.
+> [What is verified](#what-is-verified). The zips are on the
+> [releases page](https://github.com/noneym/facetbrowser-engine/releases).
+> FacetBrowser itself still downloads the upstream 148 engine. macOS has not
+> been built.
 
 ## Branches
 
@@ -201,6 +201,15 @@ Two additions to the fork keep a failed build from costing days:
   Patch changes made since that run have to be added to the fork's `hotfix/`
   directory, see `hotfix/README.md` there. The `chromedriver` link fix was
   built this way in 1.5 hours.
+
+Releases are made by hand from that artifact, after testing it:
+
+```sh
+gh release create facet-<ungoogled tag> <zip> -R noneym/facetbrowser-engine --target <engine commit the zip was built from>
+```
+
+Tags carry the `facet-` prefix so they never collide with ungoogled-chromium's
+own tags, which are fetched from `upstream` but not pushed here.
 
 macOS is not set up. The plan is the same: a fork of
 [ungoogled-chromium-macos](https://github.com/ungoogled-software/ungoogled-chromium-macos)
