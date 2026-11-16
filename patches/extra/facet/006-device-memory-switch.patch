@@ -1,0 +1,65 @@
+diff --git a/components/ungoogled/ungoogled_switches.cc b/components/ungoogled/ungoogled_switches.cc
+index 49f325e01c..d779dfe025 100644
+--- a/components/ungoogled/ungoogled_switches.cc
++++ b/components/ungoogled/ungoogled_switches.cc
+@@ -39,6 +39,9 @@ const char kFingerprintDeviceScaleFactor[] = "fingerprint-device-scale-factor";
+ // Specify the number of CPU cores
+ const char kFingerprintHardwareConcurrency[] = "fingerprint-hardware-concurrency";
+ 
++// Specify navigator.deviceMemory in GB: 2, 4, 8, 16 or 32
++const char kFingerprintDeviceMemory[] = "fingerprint-device-memory";
++
+ // Specify the operating system type
+ const char kFingerprintPlatform[] = "fingerprint-platform";
+ 
+diff --git a/components/ungoogled/ungoogled_switches.h b/components/ungoogled/ungoogled_switches.h
+index 2ec06c3acd..ac04bf9ae9 100644
+--- a/components/ungoogled/ungoogled_switches.h
++++ b/components/ungoogled/ungoogled_switches.h
+@@ -23,6 +23,7 @@ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintScreenWidth[];
+ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintScreenHeight[];
+ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintDeviceScaleFactor[];
+ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintHardwareConcurrency[];
++COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintDeviceMemory[];
+ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintPlatform[];
+ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintPlatformVersion[];
+ COMPONENT_EXPORT(UNGOOGLED) extern const char kFingerprintLocation[];
+diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
+index 3514ab706e..2022252511 100644
+--- a/content/browser/renderer_host/render_process_host_impl.cc
++++ b/content/browser/renderer_host/render_process_host_impl.cc
+@@ -3980,6 +3980,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+       switches::kFingerprintScreenHeight,
+       switches::kFingerprintDeviceScaleFactor,
+       switches::kFingerprintHardwareConcurrency,
++      switches::kFingerprintDeviceMemory,
+       switches::kFingerprintPlatform,
+       switches::kFingerprintPlatformVersion,
+       switches::kFingerprintLocation,
+diff --git a/third_party/blink/renderer/core/frame/navigator_device_memory.cc b/third_party/blink/renderer/core/frame/navigator_device_memory.cc
+index 36a1064608..81363e3930 100644
+--- a/third_party/blink/renderer/core/frame/navigator_device_memory.cc
++++ b/third_party/blink/renderer/core/frame/navigator_device_memory.cc
+@@ -16,6 +16,22 @@ namespace blink {
+ float NavigatorDeviceMemory::deviceMemory() const {
+   const base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+ 
++  // --fingerprint-device-memory wins over the seed. Only values the API can
++  // report on desktop are accepted.
++  if (command_line->HasSwitch(::switches::kFingerprintDeviceMemory)) {
++    const std::string value =
++        command_line->GetSwitchValueASCII(::switches::kFingerprintDeviceMemory);
++    static const struct {
++      const char* text;
++      float gigabytes;
++    } kAllowed[] = {{"2", 2}, {"4", 4}, {"8", 8}, {"16", 16}, {"32", 32}};
++    for (const auto& allowed : kAllowed) {
++      if (value == allowed.text) {
++        return allowed.gigabytes;
++      }
++    }
++  }
++
+   // navigator.deviceMemory caps high-memory devices at 32GB.
+   if (command_line->HasSwitch(::switches::kFingerprint)) {
+     std::string fingerprint_str =

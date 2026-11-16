@@ -130,3 +130,7 @@ extra/fingerprint/021-device-memory-cap.patch
 
 extra/facet/001-measure-text-noise-is-a-factor.patch
 extra/facet/002-webgl-readpixels-noise-only-for-rgba8.patch
+extra/facet/003-normalise-fingerprint-switches.patch
+extra/facet/004-screen-size-and-work-area.patch
+extra/facet/005-socks5-username-password-auth.patch
+extra/facet/006-device-memory-switch.patch

@@ -1,0 +1,70 @@
+diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
+index 0447c4084b..7dff52acf3 100644
+--- a/chrome/app/chrome_main_delegate.cc
++++ b/chrome/app/chrome_main_delegate.cc
+@@ -284,6 +284,56 @@ ChromeMainDelegate::GetNonWildcardDomainNonPortSchemes() {
+ 
+ namespace {
+ 
++// FacetBrowser: derives the switches that follow from other fingerprint
++// switches. It runs in the browser process before any child is started, so
++// children inherit the result. Switch names are spelled out because this
++// target does not depend on //components/ungoogled.
++void NormalizeFingerprintSwitches() {
++  base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
++  if (command_line->HasSwitch("type")) {
++    return;
++  }
++
++  // --fingerprint-timezone is another name for --timezone.
++  if (command_line->HasSwitch("fingerprint-timezone") &&
++      !command_line->HasSwitch("timezone")) {
++    command_line->AppendSwitchASCII(
++        "timezone", command_line->GetSwitchValueASCII("fingerprint-timezone"));
++  }
++
++  // --fingerprint-locale=tr-TR,tr,en-US,en sets the UI language and the
++  // accept-language list. A single tag such as tr-TR is expanded the way a
++  // localized Chrome install does it: tr-TR,tr,en-US,en.
++  if (command_line->HasSwitch("fingerprint-locale")) {
++    std::string locales =
++        command_line->GetSwitchValueASCII("fingerprint-locale");
++    const std::string first = locales.substr(0, locales.find(','));
++    if (!first.empty()) {
++      if (locales.find(',') == std::string::npos) {
++        const std::string language = first.substr(0, first.find('-'));
++        if (language != first) {
++          locales += "," + language;
++        }
++        if (language != "en") {
++          locales += ",en-US,en";
++        }
++      }
++      if (!command_line->HasSwitch("lang")) {
++        command_line->AppendSwitchASCII("lang", first);
++      }
++      if (!command_line->HasSwitch("accept-lang")) {
++        command_line->AppendSwitchASCII("accept-lang", locales);
++      }
++    }
++  }
++
++  // A seeded profile presents itself as Google Chrome unless a brand is given.
++  if (command_line->HasSwitch("fingerprint") &&
++      !command_line->HasSwitch("fingerprint-brand")) {
++    command_line->AppendSwitchASCII("fingerprint-brand", "Chrome");
++  }
++}
++
+ #if BUILDFLAG(IS_WIN)
+ #if !defined(BUILDING_CHROME_RENDERER)
+ // Early versions of Chrome incorrectly registered a chromehtml: URL handler,
+@@ -1192,6 +1242,8 @@ void ChromeMainDelegate::SetupTracing() {
+ std::optional<int> ChromeMainDelegate::BasicStartupComplete() {
+   crash_reporter::InitializeCrashKeys();
+ 
++  NormalizeFingerprintSwitches();
++
+ #if BUILDFLAG(IS_CHROMEOS)
+   ash::BootTimesRecorder::Get()->SaveChromeMainStats();
+ #endif

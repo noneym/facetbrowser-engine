@@ -1,0 +1,132 @@
+diff --git a/ui/display/display_util.cc b/ui/display/display_util.cc
+index c546495a7a..55d43c629f 100644
+--- a/ui/display/display_util.cc
++++ b/ui/display/display_util.cc
+@@ -4,13 +4,118 @@
+ 
+ #include "ui/display/display_util.h"
+ 
++#include <string>
++
++#include "base/command_line.h"
+ #include "base/notreached.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/string_util.h"
+ #include "build/build_config.h"
+ #include "ui/display/display.h"
+ #include "ui/display/screen.h"
+ 
+ namespace display {
+ 
++namespace {
++
++// FacetBrowser: reads an integer fingerprint switch. Returns -1 when the
++// switch is absent or out of range. Switch names are spelled out because
++// //ui/display does not depend on //components/ungoogled.
++int FingerprintSwitchAsInt(const base::CommandLine& command_line,
++                           const char* name,
++                           int min_value,
++                           int max_value) {
++  int value = 0;
++  if (!base::StringToInt(command_line.GetSwitchValueASCII(name), &value) ||
++      value < min_value || value > max_value) {
++    return -1;
++  }
++  return value;
++}
++
++// FacetBrowser: makes the screen that pages see follow the fingerprint.
++// --fingerprint-screen-width and --fingerprint-screen-height replace the
++// screen size. The work area keeps the real desktop insets, except that a
++// spoofed platform gets that platform's usual ones (taskbar, menu bar, Dock),
++// which also covers headless screens that have none.
++// --fingerprint-taskbar-height sets a bottom inset explicitly.
++void ApplyFingerprintScreenOverride(ScreenInfo* screen_info) {
++  const base::CommandLine& command_line =
++      *base::CommandLine::ForCurrentProcess();
++  if (!command_line.HasSwitch("fingerprint")) {
++    return;
++  }
++
++  const gfx::Rect real = screen_info->rect;
++  const gfx::Rect real_available = screen_info->available_rect;
++
++  gfx::Rect rect = real;
++  const int width = FingerprintSwitchAsInt(
++      command_line, "fingerprint-screen-width", 320, 16384);
++  const int height = FingerprintSwitchAsInt(
++      command_line, "fingerprint-screen-height", 240, 16384);
++  if (width > 0) {
++    rect.set_width(width);
++  }
++  if (height > 0) {
++    rect.set_height(height);
++  }
++
++  int top = real_available.y() - real.y();
++  int left = real_available.x() - real.x();
++  int right = real.right() - real_available.right();
++  int bottom = real.bottom() - real_available.bottom();
++  const bool no_real_insets =
++      top == 0 && left == 0 && right == 0 && bottom == 0;
++
++  const int taskbar = FingerprintSwitchAsInt(
++      command_line, "fingerprint-taskbar-height", 0, 1000);
++  const std::string platform = base::ToLowerASCII(
++      command_line.GetSwitchValueASCII("fingerprint-platform"));
++  bool is_native_platform = false;
++  if (taskbar >= 0) {
++    top = left = right = 0;
++    bottom = taskbar;
++  } else if (platform == "windows") {
++#if BUILDFLAG(IS_WIN)
++    is_native_platform = true;
++#endif
++    if (!is_native_platform || no_real_insets) {
++      // Windows 11 taskbar at 100% scaling.
++      top = left = right = 0;
++      bottom = 48;
++    }
++  } else if (platform == "macos") {
++#if BUILDFLAG(IS_MAC)
++    is_native_platform = true;
++#endif
++    if (!is_native_platform || no_real_insets) {
++      // Menu bar and a default-sized Dock.
++      left = right = 0;
++      top = 25;
++      bottom = 70;
++    }
++  } else if (platform == "linux") {
++#if BUILDFLAG(IS_LINUX)
++    is_native_platform = true;
++#endif
++    if (!is_native_platform) {
++      top = left = right = bottom = 0;
++    }
++  }
++
++  gfx::Rect available(rect.x() + left, rect.y() + top,
++                      rect.width() - left - right,
++                      rect.height() - top - bottom);
++  if (available.IsEmpty()) {
++    available = rect;
++  }
++  screen_info->rect = rect;
++  screen_info->available_rect = available;
++}
++
++}  // namespace
++
+ // static
+ void DisplayUtil::DisplayToScreenInfo(ScreenInfo* screen_info,
+                                       const Display& display) {
+@@ -58,6 +163,8 @@ void DisplayUtil::DisplayToScreenInfo(ScreenInfo* screen_info,
+   screen_info->display_frequency = display.display_frequency();
+   screen_info->display_id = display.id();
+   screen_info->label = display.label();
++
++  ApplyFingerprintScreenOverride(screen_info);
+ }
+ 
+ // static
