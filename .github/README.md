@@ -135,8 +135,9 @@ Known behaviour inherited from upstream, not changed here:
   pixel memory owned by the source image. Upstream 150 has open crash reports
   in this area. The stress loop above did not reproduce a crash; it is still
   the first suspect if readback crashes.
-- Screen size, device scale factor and colour depth switches are declared
-  but nothing reads them.
+- The device scale factor switch is declared but nothing reads it. Screen
+  size is handled by `004-screen-size-and-work-area` on the `cloak-parity`
+  branch, which is not in a released build yet.
 - `chromedriver.exe` is built but not included in the zip.
 
 ## Command line switches
@@ -152,6 +153,23 @@ Known behaviour inherited from upstream, not changed here:
 | `--timezone=<IANA id>` | Timezone for JavaScript and ICU. |
 | `--disable-spoofing=<list>` | Comma-separated features to leave real: `canvas`, `gpu`, `audio`, `clientrects`, `font`. |
 | `--lang`, `--accept-lang` | Standard Chromium language switches. |
+
+Added on the `cloak-parity` branch (`patches/extra/facet/003` to `006`). They
+apply to Chromium 157 but have not been compiled or tested yet, and no
+released build has them:
+
+| Switch | Meaning |
+|---|---|
+| `--fingerprint-brand` absent | Defaults to `Chrome` when `--fingerprint` is given. |
+| `--fingerprint-timezone=<IANA id>` | Another name for `--timezone`. |
+| `--fingerprint-locale=<tag>[,<tag>...]` | Sets `--lang` to the first tag and `--accept-lang` to the list. A single tag such as `tr-TR` becomes `tr-TR,tr,en-US,en`. Explicit `--lang` and `--accept-lang` win. |
+| `--fingerprint-screen-width=<px>`, `--fingerprint-screen-height=<px>` | Screen size that pages see (`screen.*`, `device-width` media queries). |
+| `--fingerprint-taskbar-height=<px>` | Bottom inset of the work area. Without it the real insets are kept, and a spoofed platform gets its usual ones: 48 for Windows, a 25 menu bar and a 70 Dock for macOS, none for Linux. |
+| `--fingerprint-device-memory=2\|4\|8\|16\|32` | `navigator.deviceMemory`; seed-derived if absent. |
+| `--proxy-server=socks5://user:pass@host:port` | SOCKS5 username/password authentication. Percent-encode the credentials. |
+
+What is still missing compared with other stealth builds, and the order it
+is being worked on, is in [`facet/ROADMAP.md`](../facet/ROADMAP.md).
 
 ## Working on the patches
 
