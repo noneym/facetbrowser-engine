@@ -67,6 +67,7 @@ description, the design is open), **not planned**.
 | Screen coordinates of mouse events sent through DevTools | have | Chromium 157 already converts widget to screen coordinates (`ConvertWidgetPointToScreenPoint` in `input_handler.cc`); checked in the source, not yet in the probe |
 | Other properties of DevTools input events (movement deltas, pointer ids, timestamps) | research | Needs a probe page that records trusted input from a real user and from DevTools |
 | No warning bar for `--no-sandbox` | planned | Small. The bar changes the viewport height |
+| No `cdc_` properties on `window` in a `chromedriver` session | planned | The Linux 148 test found 7 of them in a page driven by our `chromedriver`. Stock behaviour of `chromedriver`; the names come from the script it injects, so the fix is a patch to `chrome/test/chromedriver` |
 
 ## Graphics and media
 
@@ -104,8 +105,8 @@ These belong to FacetBrowser or to a deployment, not to the Chromium build:
 | Platform | Status |
 |---|---|
 | Windows x64 | have (157 and the 148 baseline) |
-| macOS arm64 | 148 baseline building; 157 waits for upstream's macOS packaging |
-| Linux x64 (glibc, with `chromedriver`) | started |
+| macOS arm64 | 148 baseline package built and tested on the build runner, not released; 157 packaging is published upstream, build not started |
+| Linux x64 (glibc, with `chromedriver`) | 148 baseline package built and tested headless on Debian bookworm, not released; 157 waits for upstream's Linux packaging |
 
 ## Order of work
 
