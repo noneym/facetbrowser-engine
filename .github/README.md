@@ -155,7 +155,7 @@ Known behaviour inherited from upstream, not changed here:
 | `--lang`, `--accept-lang` | Standard Chromium language switches. |
 
 Added on the `cloak-parity` branch (`patches/extra/facet/003` to `006`). They
-apply to Chromium 157 but have not been compiled or tested yet, and no
+compile for Windows on Chromium 157 but have not been run or tested yet, and no
 released build has them:
 
 | Switch | Meaning |

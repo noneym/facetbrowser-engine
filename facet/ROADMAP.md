@@ -20,7 +20,7 @@ Rules for this work:
   it is listed as "patch written".
 
 Status values: **have** (in a released build), **patch written** (on the
-`cloak-parity` branch, applies to Chromium 157, not compiled yet),
+`cloak-parity` branch, compiles for Windows on Chromium 157, not run yet),
 **planned**, **research** (the behaviour is known only from a one-line
 description, the design is open), **not planned**.
 
