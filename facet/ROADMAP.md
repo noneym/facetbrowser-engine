@@ -67,7 +67,7 @@ description, the design is open), **not planned**.
 | Screen coordinates of mouse events sent through DevTools | have | Chromium 157 already converts widget to screen coordinates (`ConvertWidgetPointToScreenPoint` in `input_handler.cc`); checked in the source, not yet in the probe |
 | Other properties of DevTools input events (movement deltas, pointer ids, timestamps) | research | Needs a probe page that records trusted input from a real user and from DevTools |
 | No warning bar for `--no-sandbox` | planned | Small. The bar changes the viewport height |
-| No `cdc_` properties on `window` in a `chromedriver` session | planned | The Linux 148 test found 7 of them in a page driven by our `chromedriver`. Stock behaviour of `chromedriver`; the names come from the script it injects, so the fix is a patch to `chrome/test/chromedriver` |
+| No `cdc_` properties on `window` in a `chromedriver` session | patch written | `007-chromedriver-no-window-properties`, not compiled yet. The Linux 148 test found 7 of them in a page driven by stock `chromedriver`. The patch stops saving them and stops reading them, so a page cannot find them or trap a read. Cost: `chromedriver` no longer survives a page that replaces `Array`, `Promise` or `JSON` |
 
 ## Graphics and media
 

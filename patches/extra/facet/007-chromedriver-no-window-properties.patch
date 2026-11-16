@@ -1,0 +1,151 @@
+diff --git a/chrome/test/chromedriver/chrome/devtools_client_impl.cc b/chrome/test/chromedriver/chrome/devtools_client_impl.cc
+index fccf14f67a..5127e092da 100644
+--- a/chrome/test/chromedriver/chrome/devtools_client_impl.cc
++++ b/chrome/test/chromedriver/chrome/devtools_client_impl.cc
+@@ -573,38 +573,13 @@ Status DevToolsClientImpl::SetupTabTarget() {
+ Status DevToolsClientImpl::SetUpDevTools() {
+   if (id_ != kBrowserwideDevToolsClientId &&
+       (GetOwner() == nullptr || !GetOwner()->IsServiceWorker())) {
+-    // The method Page.addScriptToEvaluateOnNewDocument used below has no effect
+-    // until Page domain is enabled.
+-    // In majority of cases the event listeners like NavigationTracker enable
+-    // this domain quickly enough to mask the problem.
+-    // In rare occasions (2% of cases) they kick in too late and therefore the
+-    // tests like testExecuteScriptWithDeletedGlobalJSON can fail.
+-    // To avoid such flakiness we enable the Page domain first.
++    // This is a page or frame level DevToolsClient.
++    // Upstream saves copies of Array, Object, Promise, Proxy, Symbol, JSON and
++    // Window as properties of every window here, under names that any page
++    // can look for. They are not saved in this build; the scripts in
++    // chrome/test/chromedriver/js use the globals of the page instead. The
++    // Page domain is still enabled early, as upstream does.
+     SendCommandAndIgnoreResponse("Page.enable", base::DictValue());
+-
+-    // This is a page or frame level DevToolsClient
+-    base::DictValue params;
+-    std::string script =
+-        "(function () {"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_Array = window.Array;"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_Object = window.Object;"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_Promise = window.Promise;"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_Proxy = window.Proxy;"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol = window.Symbol;"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_JSON = window.JSON;"
+-        "window.cdc_adoQpoasnfa76pfcZLmcfl_Window = window.Window;"
+-        "}) ();";
+-    params.Set("source", script);
+-    Status status = SendCommandAndIgnoreResponse(
+-        "Page.addScriptToEvaluateOnNewDocument", params);
+-    if (status.IsError())
+-      return status;
+-
+-    params.clear();
+-    params.Set("expression", script);
+-    status = SendCommandAndIgnoreResponse("Runtime.evaluate", params);
+-    if (status.IsError())
+-      return status;
+   }
+ 
+   return Status{kOk};
+diff --git a/chrome/test/chromedriver/js/call_function.js b/chrome/test/chromedriver/js/call_function.js
+index 0f5c94fada..2eb72318d7 100644
+--- a/chrome/test/chromedriver/js/call_function.js
++++ b/chrome/test/chromedriver/js/call_function.js
+@@ -74,7 +74,7 @@ function newError(message, code) {
+ }
+ 
+ function isNodeReachable(node) {
+-  const Window = window.cdc_adoQpoasnfa76pfcZLmcfl_Window || window.Window;
++  const Window = window.Window;
+   const nodeRoot = getNodeRootThroughAnyShadows(node);
+   return (nodeRoot == document.documentElement.parentNode)
+       || (nodeRoot instanceof Window);
+@@ -138,7 +138,7 @@ function isElement(value) {
+  * @return {boolean} True if value is an iterable collection.
+  */
+ function isCollection(value) {
+-  const Symbol = window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol || window.Symbol;
++  const Symbol = window.Symbol;
+   return (typeof value[Symbol.iterator] === 'function') &&
+       ('length' in value) &&
+       (typeof value.length === 'number');
+@@ -167,7 +167,7 @@ function cloneWithAlgorithm(item, seen, algo, nodes) {
+   }
+ 
+   if (isCollection(item)) {
+-    const Array = window.cdc_adoQpoasnfa76pfcZLmcfl_Array || window.Array;
++    const Array = window.Array;
+     tmp = new Array(item.length);
+     for (let i = 0; i < item.length; ++i)
+       tmp[i] = maybeCopyProperty(i);
+@@ -214,7 +214,7 @@ function serializationGuard(object) {
+       return undefined;
+     }
+   }
+-  const Proxy = window.cdc_adoQpoasnfa76pfcZLmcfl_Proxy || window.Proxy;
++  const Proxy = window.Proxy;
+   return new Proxy(object, handler);
+ }
+ 
+@@ -262,10 +262,10 @@ function preprocessResult(item, seen, nodes) {
+     return serializationGuard(ret);
+   }
+ 
+-  let WindowProxy = window.cdc_adoQpoasnfa76pfcZLmcfl_Window || window.Window;
++  let WindowProxy = window.Window;
+   let is_oopif = false;
+   try {
+-    WindowProxy = item.cdc_adoQpoasnfa76pfcZLmcfl_Window || item.Window
++    WindowProxy = item.Window
+         || WindowProxy;
+   } catch {
+     is_oopif = true;
+@@ -370,11 +370,11 @@ function callFunction(func, args, w3c, nodes) {
+       status: error.code || StatusCode.JAVA_SCRIPT_ERROR,
+       value: error.message || error
+     });
+-    const JSON = window.cdc_adoQpoasnfa76pfcZLmcfl_JSON || window.JSON;
++    const JSON = window.JSON;
+     return [JSON.stringify(errorResponse)];
+   }
+ 
+-  const Promise = window.cdc_adoQpoasnfa76pfcZLmcfl_Promise || window.Promise;
++  const Promise = window.Promise;
+   let unwrappedArgs = null;
+   try {
+     unwrappedArgs = resolveReferences(args, nodes);
+@@ -390,7 +390,7 @@ function callFunction(func, args, w3c, nodes) {
+         status: 0,
+         value: preprocessResult(result, [], ret_nodes)
+       };
+-      const JSON = window.cdc_adoQpoasnfa76pfcZLmcfl_JSON || window.JSON;
++      const JSON = window.JSON;
+       return [JSON.stringify(response), ...ret_nodes];
+     }).catch(buildError);
+   } catch (error) {
+diff --git a/chrome/test/chromedriver/js/execute_async_script.js b/chrome/test/chromedriver/js/execute_async_script.js
+index a085cf88c7..5b89a73f48 100644
+--- a/chrome/test/chromedriver/js/execute_async_script.js
++++ b/chrome/test/chromedriver/js/execute_async_script.js
+@@ -29,7 +29,7 @@ var StatusCode = {
+ *     be supplied to the script.
+ */
+ async function executeAsyncScript(script, args, isUserSupplied) {
+-  const Promise = window.cdc_adoQpoasnfa76pfcZLmcfl_Promise || window.Promise;
++  const Promise = window.Promise;
+   const promiseResolve = Promise.resolve.bind(Promise);
+   const promiseThen = Function.prototype.call.bind(Promise.prototype.then);
+   function isThenable(value) {
+diff --git a/chrome/test/chromedriver/js/execute_script.js b/chrome/test/chromedriver/js/execute_script.js
+index 52ec5b3ccc..2d96280f30 100644
+--- a/chrome/test/chromedriver/js/execute_script.js
++++ b/chrome/test/chromedriver/js/execute_script.js
+@@ -14,7 +14,7 @@ function executeScript(script, args) {
+   try {
+     // Convert script (as a string) into an async function.
+     const f = (new Function('return async function(){' + script + '}'))();
+-    const Promise = window.cdc_adoQpoasnfa76pfcZLmcfl_Promise || window.Promise;
++    const Promise = window.Promise;
+     return Promise.resolve(f.apply(null, args));
+   } catch (e) {
+     return Promise.reject(e);
