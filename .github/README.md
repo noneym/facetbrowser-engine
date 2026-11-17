@@ -155,8 +155,8 @@ Known behaviour inherited from upstream, not changed here:
 | `--lang`, `--accept-lang` | Standard Chromium language switches. |
 
 Added on the `cloak-parity` branch (`patches/extra/facet/003` to `006`). They
-compile for Windows on Chromium 157 but have not been run or tested yet, and no
-released build has them:
+were built for Windows on Chromium 157 and pass the probe and
+`facet/socks5_auth_test.mjs` in headless mode. No released build has them:
 
 | Switch | Meaning |
 |---|---|

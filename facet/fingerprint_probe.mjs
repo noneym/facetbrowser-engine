@@ -6,7 +6,8 @@
 //
 //   node facet/fingerprint_probe.mjs run --exe <chrome.exe> [--seed 1000]
 //        [--platform windows] [--brand Chrome] [--out result.json]
-//        [--no-fingerprint] [--stress 200] [-- <extra chrome switches>]
+//        [--no-fingerprint] [--no-brand] [--stress 200]
+//        [-- <extra chrome switches>]
 //   node facet/fingerprint_probe.mjs diff a.json b.json
 //   node facet/fingerprint_probe.mjs visit --exe <chrome.exe> --url <url>
 //        [--wait 30] [--out page.txt] [--screenshot page.png]
@@ -74,7 +75,12 @@ async function pageProbe(stressRounds) {
 
   await section('screen', async () => ({
     width: screen.width, height: screen.height, availWidth: screen.availWidth, availHeight: screen.availHeight,
-    colorDepth: screen.colorDepth, pixelDepth: screen.pixelDepth, devicePixelRatio
+    colorDepth: screen.colorDepth, pixelDepth: screen.pixelDepth, devicePixelRatio,
+    availLeft: screen.availLeft, availTop: screen.availTop,
+    // The media queries have to agree with screen.*.
+    deviceWidthQuery: matchMedia(`(device-width: ${screen.width}px)`).matches,
+    deviceHeightQuery: matchMedia(`(device-height: ${screen.height}px)`).matches,
+    outerWidth, outerHeight, innerWidth, innerHeight, screenX, screenY
   }))
 
   const paint = (canvas) => {
@@ -390,6 +396,7 @@ function parseArgs(argv) {
       break
     }
     if (a === '--no-fingerprint') opts.noFingerprint = true
+    else if (a === '--no-brand') opts.noBrand = true
     else if (a.startsWith('--')) opts[a.slice(2)] = argv[++i]
     else opts._.push(a)
   }
@@ -457,8 +464,8 @@ async function launch(opts) {
   ]
   if (!opts.noFingerprint) {
     args.push(`--fingerprint=${opts.seed || 1000}`,
-      `--fingerprint-platform=${opts.platform || 'windows'}`,
-      `--fingerprint-brand=${opts.brand || 'Chrome'}`)
+      `--fingerprint-platform=${opts.platform || 'windows'}`)
+    if (!opts.noBrand) args.push(`--fingerprint-brand=${opts.brand || 'Chrome'}`)
   }
   args.push(...opts.extra, 'about:blank')
   const child = spawn(opts.exe, args, { stdio: 'ignore' })
@@ -511,7 +518,14 @@ async function evaluate(cdp, sessionId, expression) {
 }
 
 async function run(opts) {
+  let requestHeaders = null
   const server = http.createServer((req, res) => {
+    if (req.url === '/') {
+      requestHeaders = {}
+      for (const name of ['user-agent', 'accept-language', 'sec-ch-ua', 'sec-ch-ua-platform', 'sec-ch-ua-mobile']) {
+        requestHeaders[name] = req.headers[name] ?? null
+      }
+    }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
     res.end('<!doctype html><meta charset="utf-8"><title>probe</title><body>')
   })
@@ -523,6 +537,7 @@ async function run(opts) {
     const version = await browser.cdp.send('Browser.getVersion')
     result.product = version.product
     result.browserUserAgent = version.userAgent
+    result.requestHeaders = requestHeaders
     const stress = opts.stress === undefined ? 100 : Number(opts.stress)
     result.page = await evaluate(browser.cdp, browser.sessionId, `(${pageProbe})(${stress})`)
   } catch (e) {

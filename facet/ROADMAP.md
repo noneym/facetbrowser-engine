@@ -19,8 +19,11 @@ Rules for this work:
   checked on the detection sites listed in `.github/README.md`. Until then
   it is listed as "patch written".
 
-Status values: **have** (in a released build), **patch written** (on the
-`cloak-parity` branch, compiles for Windows on Chromium 157, not run yet),
+Status values: **have** (in a released build), **tested** (on the
+`cloak-parity` branch, built for Windows on Chromium 157 and checked with
+`facet/fingerprint_probe.mjs` or `facet/socks5_auth_test.mjs` in headless
+mode; not in a released build), **patch written** (on the branch, applies to
+Chromium 157, not built yet),
 **planned**, **research** (the behaviour is known only from a one-line
 description, the design is open), **not planned**.
 
@@ -30,9 +33,9 @@ description, the design is open), **not planned**.
 |---|---|---|
 | Seed for canvas, WebGL, audio, fonts, client rects | have | `--fingerprint=<int>` |
 | Reported platform, platform version, brand, brand version | have | |
-| Brand defaults to Chrome for a seeded profile | patch written | `003-normalise-fingerprint-switches` |
-| `--fingerprint-timezone`, `--fingerprint-locale` | patch written | `003`. Aliases for `--timezone` and for `--lang` plus `--accept-lang`; a single locale tag is expanded to the list a localized Chrome uses |
-| `--fingerprint-device-memory` | patch written | `006-device-memory-switch` |
+| Brand defaults to Chrome for a seeded profile | tested | `003-normalise-fingerprint-switches` |
+| `--fingerprint-timezone`, `--fingerprint-locale` | tested | `003`. The `Accept-Language` header follows too. Aliases for `--timezone` and for `--lang` plus `--accept-lang`; a single locale tag is expanded to the list a localized Chrome uses |
+| `--fingerprint-device-memory` | tested | `006-device-memory-switch` |
 | `--fingerprint-hardware-concurrency` | have | |
 | Hardware drawn as one coherent set (GPU, cores, memory, screen) from common real devices | planned | Today cores are `((seed % 13) + 4) * 2`, which yields rare counts such as 26. Changing the mapping changes what an existing seed looks like, so it needs a versioned scheme (`--fingerprint-scheme=2`) |
 | `--fingerprint-gpu-vendor` | planned | Part of the coherent hardware work |
@@ -45,9 +48,9 @@ description, the design is open), **not planned**.
 
 | Capability | Status | Notes |
 |---|---|---|
-| `--fingerprint-screen-width`, `--fingerprint-screen-height` | patch written | `004-screen-size-and-work-area`. Applied where the browser builds `ScreenInfo`, so `screen.*` and the `device-width` media queries agree |
-| Work area with a taskbar, menu bar or Dock for the reported platform; `--fingerprint-taskbar-height` | patch written | `004`. Also fixes `screen.availHeight == screen.height` on headless screens |
-| Window frame size in headless (`outerHeight` larger than `innerHeight`), window position | planned | The largest remaining headless tell. Until then run headed under Xvfb on Linux |
+| `--fingerprint-screen-width`, `--fingerprint-screen-height` | tested | `004-screen-size-and-work-area`. Applied where the browser builds `ScreenInfo`, so `screen.*` and the `device-width` media queries agree |
+| Work area with a taskbar, menu bar or Dock for the reported platform; `--fingerprint-taskbar-height` | tested | `004`. Checked for a Windows and a macOS persona on a Windows host. Also fixes `screen.availHeight == screen.height` on headless screens |
+| Window frame size in headless (`outerHeight` larger than `innerHeight`), window position | planned | Headless on Windows already reports a frame (outer 1100x800, inner 1084x705 in the probe). Not measured on Linux yet; until then run headed under Xvfb there |
 | Storage quota like a regular profile (`storage.estimate()`, storage buckets) | planned | Closes the storage-based incognito checks |
 
 ## Fonts
@@ -82,7 +85,7 @@ description, the design is open), **not planned**.
 
 | Capability | Status | Notes |
 |---|---|---|
-| SOCKS5 username/password (RFC 1929) | patch written | `005-socks5-username-password-auth`. `--proxy-server=socks5://user:pass@host:port`, credentials percent-encoded |
+| SOCKS5 username/password (RFC 1929) | tested | `005-socks5-username-password-auth`. Good, wrong and missing credentials checked against a local proxy. `--proxy-server=socks5://user:pass@host:port`, credentials percent-encoded |
 | QUIC through SOCKS5 (UDP ASSOCIATE) | not planned | Large; HTTP/2 over the TCP tunnel is what Chrome uses behind most SOCKS proxies anyway |
 | HTTP proxy credentials in `--proxy-server` | planned | Today the embedder answers the 407 through DevTools, which works but is visible as extra DevTools traffic |
 | WebRTC candidates show the proxy exit address | planned | Until then use `--webrtc-ip-handling-policy=disable_non_proxied_udp`, which hides the real address but leaves no public candidate |
@@ -110,7 +113,7 @@ These belong to FacetBrowser or to a deployment, not to the Chromium build:
 
 ## Order of work
 
-1. Compile and test the four patches on `cloak-parity`, then merge.
+1. Merge the four tested patches (`003` to `006`); build `007`.
 2. Linux x64 package, tested headless and headed under Xvfb with a Windows
    persona.
 3. Headless window frame, storage quota, WebRTC exit address.
