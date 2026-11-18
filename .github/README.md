@@ -136,9 +136,10 @@ Known behaviour inherited from upstream, not changed here:
   in this area. The stress loop above did not reproduce a crash; it is still
   the first suspect if readback crashes.
 - The device scale factor switch is declared but nothing reads it. Screen
-  size is handled by `004-screen-size-and-work-area` on the `cloak-parity`
-  branch, which is not in a released build yet.
-- `chromedriver.exe` is built but not included in the zip.
+  size is handled by `004-screen-size-and-work-area`, from
+  `facet-157.0.8103.50-2` on.
+- `chromedriver.exe` is in the zip from `facet-157.0.8103.50-2` on. It is the
+  stock one until `007-chromedriver-no-window-properties` is built.
 
 ## Command line switches
 
@@ -154,9 +155,10 @@ Known behaviour inherited from upstream, not changed here:
 | `--disable-spoofing=<list>` | Comma-separated features to leave real: `canvas`, `gpu`, `audio`, `clientrects`, `font`. |
 | `--lang`, `--accept-lang` | Standard Chromium language switches. |
 
-Added on the `cloak-parity` branch (`patches/extra/facet/003` to `006`). They
-were built for Windows on Chromium 157 and pass the probe and
-`facet/socks5_auth_test.mjs` in headless mode. No released build has them:
+Added in the Windows release `facet-157.0.8103.50-2`
+(`patches/extra/facet/003` to `006`). They pass the probe and
+`facet/socks5_auth_test.mjs` in headless mode. The `-1` release and the macOS
+and Linux packages do not have them:
 
 | Switch | Meaning |
 |---|---|
