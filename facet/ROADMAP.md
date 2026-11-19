@@ -22,8 +22,12 @@ Rules for this work:
 Status values: **have** (in a released build), **have, Windows** (in the
 Windows release `facet-157.0.8103.50-2`, checked with
 `facet/fingerprint_probe.mjs` or `facet/socks5_auth_test.mjs` in headless
-mode; the macOS and Linux packages were built without it), **patch written**
-(on `main`, applies to Chromium 157, not built yet),
+mode; the Linux release `facet-157.0.8103.50-3` is built with it but only
+the brand default has been run there; the macOS package was built without
+it), **have, Linux** (in the Linux release `facet-157.0.8103.50-3`, checked
+headless in a Debian bookworm container; not in the Windows or macOS
+package), **patch written** (on `main`, applies to Chromium 157, not built
+yet),
 **planned**, **research** (the behaviour is known only from a one-line
 description, the design is open), **not planned**.
 
@@ -70,7 +74,7 @@ description, the design is open), **not planned**.
 | Screen coordinates of mouse events sent through DevTools | have | Chromium 157 already converts widget to screen coordinates (`ConvertWidgetPointToScreenPoint` in `input_handler.cc`); checked in the source, not yet in the probe |
 | Other properties of DevTools input events (movement deltas, pointer ids, timestamps) | research | Needs a probe page that records trusted input from a real user and from DevTools |
 | No warning bar for `--no-sandbox` | planned | Small. The bar changes the viewport height |
-| No `cdc_` properties on `window` in a `chromedriver` session | patch written | `007-chromedriver-no-window-properties`, not compiled yet. The Linux 148 test found 7 of them in a page driven by stock `chromedriver`. The patch stops saving them and stops reading them, so a page cannot find them or trap a read. Cost: `chromedriver` no longer survives a page that replaces `Array`, `Promise` or `JSON` |
+| No `cdc_` properties on `window` in a `chromedriver` session | have, Linux | `007-chromedriver-no-window-properties`. The Linux 148 test found 7 of them in a page driven by stock `chromedriver`; the Linux 157 package leaves none, and its `chromedriver` binary has no `cdc_` string. The patch stops saving them and stops reading them, so a page cannot find them or trap a read. Cost: `chromedriver` no longer survives a page that replaces `Array`, `Promise` or `JSON` |
 
 ## Graphics and media
 
@@ -108,14 +112,14 @@ These belong to FacetBrowser or to a deployment, not to the Chromium build:
 | Platform | Status |
 |---|---|
 | Windows x64 | have (157 with the patches up to `006`, and the 148 baseline) |
-| macOS arm64 | 148 baseline package built and tested on the build runner, not released; 157 package built from `main` before patches `003` to `006`, not released |
-| Linux x64 (glibc, with `chromedriver`) | 148 baseline package built and tested headless on Debian bookworm, not released; 157 waits for upstream's Linux packaging |
+| macOS arm64 | 157 package built from `main` before patches `003` to `006`, in `facet-157.0.8103.50-1`; 148 baseline package built and tested on the build runner, not released |
+| Linux x64 (glibc, with `chromedriver`) | have (157 with the patches up to `007`, `facet-157.0.8103.50-3`, tested headless on Debian bookworm only); 148 baseline package built and tested the same way, not released |
 
 ## Order of work
 
-1. Build `007`. Rebuild the macOS package with `003` to `007`.
-2. Linux x64 package, tested headless and headed under Xvfb with a Windows
-   persona.
+1. Rebuild the macOS and Windows packages with `003` to `007`.
+2. Run the switches of `003` to `006` and the SOCKS5 test on the Linux
+   package; test it headed under Xvfb with a Windows persona.
 3. Headless window frame, storage quota, WebRTC exit address.
 4. Coherent hardware scheme, WebGPU.
 5. Scope the `Runtime.enable` change; DevTools input research.

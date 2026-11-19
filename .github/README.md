@@ -10,13 +10,15 @@ The fingerprint patches come from
 (BSD-3-Clause), whose last published source is for Chromium 148. This
 repository carries them forward to current Chromium and fixes bugs in them.
 
-> **Status: both branches build and run on Windows x64.** `baseline-148`
-> reproduces the behaviour of the engine FacetBrowser ships today, and
-> Chromium 157.0.8103.50 with the ported series passes the checks in
-> [What is verified](#what-is-verified). The zips are on the
-> [releases page](https://github.com/noneym/facetbrowser-engine/releases).
-> FacetBrowser itself still downloads the upstream 148 engine. macOS has not
-> been built.
+> **Status: Chromium 157.0.8103.50 with the ported series is released for
+> Windows x64, Linux x64 and macOS arm64.** The packages are on the
+> [releases page](https://github.com/noneym/facetbrowser-engine/releases):
+> Windows in `facet-157.0.8103.50-2`, Linux in `facet-157.0.8103.50-3`, macOS
+> in `facet-157.0.8103.50-1` (built before the patches after `002`). The
+> Windows build passes the checks in [What is verified](#what-is-verified).
+> FacetBrowser downloads the Windows package; on macOS it still downloads the
+> upstream 148 engine. `baseline-148` reproduces the behaviour of that 148
+> engine.
 
 ## Branches
 
@@ -107,7 +109,8 @@ fingerprint-chromium), measured on the same machine with
 | [Pixelscan](https://pixelscan.net/fingerprint-check) | "Masking detected", "No automated behavior detected". 148 gets the same verdict, so this is inherited, not a regression of the port |
 | `baseline-148` builds on the same pipeline ([run 43196114201](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43196114201), zip SHA-256 `8f94064db4236d2d63fe30e4d160b23e42628b508e7d3b5a5edff264f1d1129b`) | Pass |
 | Our `baseline-148` build against the shipped 148 engine | Same behaviour: 161 of 161 probe values equal for seed 1000, for seed 2000 and without `--fingerprint`, including the `measureText` and `readPixels` bugs. Same file list. The binaries are not byte-identical; our `chrome.dll` is 277 MB against 308 MB, so the shipped engine was built with different settings |
-| macOS arm64 package | **Not built** |
+| macOS arm64 package | Built from `main` before `003`, in `facet-157.0.8103.50-1`. Not covered by the checks above |
+| Linux x64 package (`facet-157.0.8103.50-3`, engine commit `5df4d870`, [run 44299016991](https://github.com/noneym/facetbrowser-engine-linux/actions/runs/44299016991)) | Headless in a Debian bookworm container: no missing library, the same seed gives the same values, a different seed changes 35 of 176, `measureText` in 16px Arial is 410.03, the brand defaults to Google Chrome 157, and a page driven by the bundled `chromedriver` finds no `cdc_` property on `window`. The switches of `003` to `006` other than the brand default, a visible window and the detection sites have not been run on Linux |
 
 Differences between 148 and 157 for the same seed, other than the version
 strings:
@@ -138,8 +141,10 @@ Known behaviour inherited from upstream, not changed here:
 - The device scale factor switch is declared but nothing reads it. Screen
   size is handled by `004-screen-size-and-work-area`, from
   `facet-157.0.8103.50-2` on.
-- `chromedriver.exe` is in the zip from `facet-157.0.8103.50-2` on. It is the
-  stock one until `007-chromedriver-no-window-properties` is built.
+- `chromedriver.exe` is in the Windows zip from `facet-157.0.8103.50-2` on.
+  It is the stock one there and leaves `cdc_` properties on `window`. The
+  Linux package of `facet-157.0.8103.50-3` is built with
+  `007-chromedriver-no-window-properties` and does not.
 
 ## Command line switches
 
@@ -157,8 +162,10 @@ Known behaviour inherited from upstream, not changed here:
 
 Added in the Windows release `facet-157.0.8103.50-2`
 (`patches/extra/facet/003` to `006`). They pass the probe and
-`facet/socks5_auth_test.mjs` in headless mode. The `-1` release and the macOS
-and Linux packages do not have them:
+`facet/socks5_auth_test.mjs` in headless mode on Windows. The Linux release
+`facet-157.0.8103.50-3` is built with them too, but only the brand default
+has been checked there. The `-1` release (Windows and macOS) does not have
+them:
 
 | Switch | Meaning |
 |---|---|
@@ -231,9 +238,13 @@ gh release create facet-<ungoogled tag> <zip> -R noneym/facetbrowser-engine --ta
 Tags carry the `facet-` prefix so they never collide with ungoogled-chromium's
 own tags, which are fetched from `upstream` but not pushed here.
 
-macOS is not set up. The plan is the same: a fork of
-[ungoogled-chromium-macos](https://github.com/ungoogled-software/ungoogled-chromium-macos)
-with this repository as its submodule.
+macOS arm64 and Linux x64 are built the same way, by
+[noneym/facetbrowser-engine-macos](https://github.com/noneym/facetbrowser-engine-macos)
+and
+[noneym/facetbrowser-engine-linux](https://github.com/noneym/facetbrowser-engine-linux),
+forks of ungoogled-chromium-macos and ungoogled-chromium-portablelinux with
+this repository as their submodule. The Linux run also tests the package in a
+Debian bookworm container and uploads the results as `test-results`.
 
 ## License and credits
 
