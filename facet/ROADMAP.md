@@ -23,11 +23,11 @@ Status values: **have** (in a released build), **have, Windows and Linux**
 (in the Windows release `facet-157.0.8103.50-2` and the Linux release
 `facet-157.0.8103.50-3`, checked with `facet/fingerprint_probe.mjs` or
 `facet/socks5_auth_test.mjs` in headless mode, on Linux in a Debian bookworm
-container; the macOS package was built without it), **have, Linux** (in the Linux release `facet-157.0.8103.50-3`, checked
-headless in a Debian bookworm container; not in the Windows or macOS
-package), **patch written** (on `main`, applies to Chromium 157, not built
-yet),
-**planned**, **research** (the behaviour is known only from a one-line
+container; the macOS package of `-3` is built with it but it has not been
+run there), **have, Linux** (in the Linux release `facet-157.0.8103.50-3`,
+checked headless in a Debian bookworm container; not in the Windows package,
+and the macOS disk image has no `chromedriver`), **patch written** (on
+`main`, applies to Chromium 157, not built yet), **planned**, **research** (the behaviour is known only from a one-line
 description, the design is open), **not planned**.
 
 ## Identity
@@ -112,12 +112,13 @@ These belong to FacetBrowser or to a deployment, not to the Chromium build:
 | Platform | Status |
 |---|---|
 | Windows x64 | have (157 with the patches up to `006`, and the 148 baseline) |
-| macOS arm64 | 157 package built from `main` before patches `003` to `006`, in `facet-157.0.8103.50-1`; 148 baseline package built and tested on the build runner, not released |
+| macOS arm64 | have (157 with the patches up to `007`, `facet-157.0.8103.50-3`, tested on the build runner only, the new switches not run; not notarized); 148 baseline package built and tested the same way, not released |
 | Linux x64 (glibc, with `chromedriver`) | have (157 with the patches up to `007`, `facet-157.0.8103.50-3`, tested headless on Debian bookworm only); 148 baseline package built and tested the same way, not released |
 
 ## Order of work
 
-1. Rebuild the macOS and Windows packages with `003` to `007`.
+1. Rebuild the Windows package with `007`. Run the switches of `003` to
+   `006` and the SOCKS5 test on the macOS package.
 2. Test the Linux package headed under Xvfb with a Windows persona and on
    the detection sites.
 3. `Intl` locale on Linux, headless window frame, storage quota, WebRTC exit

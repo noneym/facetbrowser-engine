@@ -13,9 +13,8 @@ repository carries them forward to current Chromium and fixes bugs in them.
 > **Status: Chromium 157.0.8103.50 with the ported series is released for
 > Windows x64, Linux x64 and macOS arm64.** The packages are on the
 > [releases page](https://github.com/noneym/facetbrowser-engine/releases):
-> Windows in `facet-157.0.8103.50-2`, Linux in `facet-157.0.8103.50-3`, macOS
-> in `facet-157.0.8103.50-1` (built before the patches after `002`). The
-> Windows build passes the checks in [What is verified](#what-is-verified).
+> Windows in `facet-157.0.8103.50-2`, Linux and macOS in
+> `facet-157.0.8103.50-3`. The Windows build passes the checks in [What is verified](#what-is-verified).
 > FacetBrowser downloads the Windows package; on macOS it still downloads the
 > upstream 148 engine. `baseline-148` reproduces the behaviour of that 148
 > engine.
@@ -109,7 +108,7 @@ fingerprint-chromium), measured on the same machine with
 | [Pixelscan](https://pixelscan.net/fingerprint-check) | "Masking detected", "No automated behavior detected". 148 gets the same verdict, so this is inherited, not a regression of the port |
 | `baseline-148` builds on the same pipeline ([run 43196114201](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43196114201), zip SHA-256 `8f94064db4236d2d63fe30e4d160b23e42628b508e7d3b5a5edff264f1d1129b`) | Pass |
 | Our `baseline-148` build against the shipped 148 engine | Same behaviour: 161 of 161 probe values equal for seed 1000, for seed 2000 and without `--fingerprint`, including the `measureText` and `readPixels` bugs. Same file list. The binaries are not byte-identical; our `chrome.dll` is 277 MB against 308 MB, so the shipped engine was built with different settings |
-| macOS arm64 package | Built from `main` before `003`, in `facet-157.0.8103.50-1`. Not covered by the checks above |
+| macOS arm64 package (`facet-157.0.8103.50-3`, engine commit `5df4d870`, [run 44296656521](https://github.com/noneym/facetbrowser-engine-macos/actions/runs/44296656521)) | On a GitHub macOS arm64 runner: starts as signed in the disk image (ad hoc), the same seed gives the same values, a different seed changes 38 of 176, `measureText` in 16px Arial is 410.03, a window and headless differ only in screen and window sizes. The switches of `003` to `006`, SOCKS5 authentication, the detection sites and a real Mac have not been tried. Not notarized, so Gatekeeper rejects it. The older disk image in `facet-157.0.8103.50-1` has the same file name and was built before `003` |
 | Linux x64 package (`facet-157.0.8103.50-3`, engine commit `5df4d870`, [run 44299016991](https://github.com/noneym/facetbrowser-engine-linux/actions/runs/44299016991)) | Headless in a Debian bookworm container: no missing library, the same seed gives the same values, a different seed changes 35 of 176, `measureText` in 16px Arial is 410.03, the brand defaults to Google Chrome 157, and a page driven by the bundled `chromedriver` finds no `cdc_` property on `window`. The switches of `003` to `006` and `facet/socks5_auth_test.mjs` pass in the same image, with the `Intl` exception noted under the switch table. A visible window, the sandbox and the detection sites have not been run on Linux |
 
 Differences between 148 and 157 for the same seed, other than the version
@@ -163,8 +162,9 @@ Known behaviour inherited from upstream, not changed here:
 Added in the Windows release `facet-157.0.8103.50-2`
 (`patches/extra/facet/003` to `006`). They pass the probe and
 `facet/socks5_auth_test.mjs` in headless mode on Windows and, in the Linux
-release `facet-157.0.8103.50-3`, in a Debian bookworm container. The `-1`
-release (Windows and macOS) does not have them:
+release `facet-157.0.8103.50-3`, in a Debian bookworm container. The macOS
+package of `-3` is built with them but they have not been run there. The
+`-1` release (Windows and macOS) does not have them:
 
 | Switch | Meaning |
 |---|---|
