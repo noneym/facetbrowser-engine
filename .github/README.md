@@ -110,7 +110,7 @@ fingerprint-chromium), measured on the same machine with
 | `baseline-148` builds on the same pipeline ([run 43196114201](https://github.com/noneym/facetbrowser-engine-windows/actions/runs/43196114201), zip SHA-256 `8f94064db4236d2d63fe30e4d160b23e42628b508e7d3b5a5edff264f1d1129b`) | Pass |
 | Our `baseline-148` build against the shipped 148 engine | Same behaviour: 161 of 161 probe values equal for seed 1000, for seed 2000 and without `--fingerprint`, including the `measureText` and `readPixels` bugs. Same file list. The binaries are not byte-identical; our `chrome.dll` is 277 MB against 308 MB, so the shipped engine was built with different settings |
 | macOS arm64 package | Built from `main` before `003`, in `facet-157.0.8103.50-1`. Not covered by the checks above |
-| Linux x64 package (`facet-157.0.8103.50-3`, engine commit `5df4d870`, [run 44299016991](https://github.com/noneym/facetbrowser-engine-linux/actions/runs/44299016991)) | Headless in a Debian bookworm container: no missing library, the same seed gives the same values, a different seed changes 35 of 176, `measureText` in 16px Arial is 410.03, the brand defaults to Google Chrome 157, and a page driven by the bundled `chromedriver` finds no `cdc_` property on `window`. The switches of `003` to `006` other than the brand default, a visible window and the detection sites have not been run on Linux |
+| Linux x64 package (`facet-157.0.8103.50-3`, engine commit `5df4d870`, [run 44299016991](https://github.com/noneym/facetbrowser-engine-linux/actions/runs/44299016991)) | Headless in a Debian bookworm container: no missing library, the same seed gives the same values, a different seed changes 35 of 176, `measureText` in 16px Arial is 410.03, the brand defaults to Google Chrome 157, and a page driven by the bundled `chromedriver` finds no `cdc_` property on `window`. The switches of `003` to `006` and `facet/socks5_auth_test.mjs` pass in the same image, with the `Intl` exception noted under the switch table. A visible window, the sandbox and the detection sites have not been run on Linux |
 
 Differences between 148 and 157 for the same seed, other than the version
 strings:
@@ -162,10 +162,9 @@ Known behaviour inherited from upstream, not changed here:
 
 Added in the Windows release `facet-157.0.8103.50-2`
 (`patches/extra/facet/003` to `006`). They pass the probe and
-`facet/socks5_auth_test.mjs` in headless mode on Windows. The Linux release
-`facet-157.0.8103.50-3` is built with them too, but only the brand default
-has been checked there. The `-1` release (Windows and macOS) does not have
-them:
+`facet/socks5_auth_test.mjs` in headless mode on Windows and, in the Linux
+release `facet-157.0.8103.50-3`, in a Debian bookworm container. The `-1`
+release (Windows and macOS) does not have them:
 
 | Switch | Meaning |
 |---|---|
@@ -176,6 +175,12 @@ them:
 | `--fingerprint-taskbar-height=<px>` | Bottom inset of the work area. Without it the real insets are kept, and a spoofed platform gets its usual ones: 48 for Windows, a 25 menu bar and a 70 Dock for macOS, none for Linux. |
 | `--fingerprint-device-memory=2\|4\|8\|16\|32` | `navigator.deviceMemory`; seed-derived if absent. |
 | `--proxy-server=socks5://user:pass@host:port` | SOCKS5 username/password authentication. Percent-encode the credentials. |
+
+On Linux, `--fingerprint-locale` and `--lang` set `navigator.languages` and
+`Accept-Language` but not the default locale of `Intl`, which stays `en-US`:
+Chromium takes its interface language from the environment there. Start the
+browser with `LANGUAGE` set as well, for example `LANGUAGE=tr`. Headless on
+Linux reports an 800x600 screen unless the screen switches are given.
 
 What is still missing compared with other stealth builds, and the order it
 is being worked on, is in [`facet/ROADMAP.md`](../facet/ROADMAP.md).

@@ -19,12 +19,11 @@ Rules for this work:
   checked on the detection sites listed in `.github/README.md`. Until then
   it is listed as "patch written".
 
-Status values: **have** (in a released build), **have, Windows** (in the
-Windows release `facet-157.0.8103.50-2`, checked with
-`facet/fingerprint_probe.mjs` or `facet/socks5_auth_test.mjs` in headless
-mode; the Linux release `facet-157.0.8103.50-3` is built with it but only
-the brand default has been run there; the macOS package was built without
-it), **have, Linux** (in the Linux release `facet-157.0.8103.50-3`, checked
+Status values: **have** (in a released build), **have, Windows and Linux**
+(in the Windows release `facet-157.0.8103.50-2` and the Linux release
+`facet-157.0.8103.50-3`, checked with `facet/fingerprint_probe.mjs` or
+`facet/socks5_auth_test.mjs` in headless mode, on Linux in a Debian bookworm
+container; the macOS package was built without it), **have, Linux** (in the Linux release `facet-157.0.8103.50-3`, checked
 headless in a Debian bookworm container; not in the Windows or macOS
 package), **patch written** (on `main`, applies to Chromium 157, not built
 yet),
@@ -37,9 +36,10 @@ description, the design is open), **not planned**.
 |---|---|---|
 | Seed for canvas, WebGL, audio, fonts, client rects | have | `--fingerprint=<int>` |
 | Reported platform, platform version, brand, brand version | have | |
-| Brand defaults to Chrome for a seeded profile | have, Windows | `003-normalise-fingerprint-switches` |
-| `--fingerprint-timezone`, `--fingerprint-locale` | have, Windows | `003`. The `Accept-Language` header follows too. Aliases for `--timezone` and for `--lang` plus `--accept-lang`; a single locale tag is expanded to the list a localized Chrome uses |
-| `--fingerprint-device-memory` | have, Windows | `006-device-memory-switch` |
+| Brand defaults to Chrome for a seeded profile | have, Windows and Linux | `003-normalise-fingerprint-switches` |
+| `--fingerprint-timezone`, `--fingerprint-locale` | have, Windows and Linux | `003`. The `Accept-Language` header follows too. Aliases for `--timezone` and for `--lang` plus `--accept-lang`; a single locale tag is expanded to the list a localized Chrome uses |
+| Default locale of `Intl` follows `--fingerprint-locale` on Linux | planned | Today it stays `en-US` there while `navigator.language` changes, because Chromium takes its interface language from the environment on Linux. Until then start the browser with `LANGUAGE=<language>` as well |
+| `--fingerprint-device-memory` | have, Windows and Linux | `006-device-memory-switch` |
 | `--fingerprint-hardware-concurrency` | have | |
 | Hardware drawn as one coherent set (GPU, cores, memory, screen) from common real devices | planned | Today cores are `((seed % 13) + 4) * 2`, which yields rare counts such as 26. Changing the mapping changes what an existing seed looks like, so it needs a versioned scheme (`--fingerprint-scheme=2`) |
 | `--fingerprint-gpu-vendor` | planned | Part of the coherent hardware work |
@@ -52,9 +52,9 @@ description, the design is open), **not planned**.
 
 | Capability | Status | Notes |
 |---|---|---|
-| `--fingerprint-screen-width`, `--fingerprint-screen-height` | have, Windows | `004-screen-size-and-work-area`. Applied where the browser builds `ScreenInfo`, so `screen.*` and the `device-width` media queries agree |
-| Work area with a taskbar, menu bar or Dock for the reported platform; `--fingerprint-taskbar-height` | have, Windows | `004`. Checked for a Windows and a macOS persona on a Windows host. Also fixes `screen.availHeight == screen.height` on headless screens |
-| Window frame size in headless (`outerHeight` larger than `innerHeight`), window position | planned | Headless on Windows already reports a frame (outer 1100x800, inner 1084x705 in the probe). Not measured on Linux yet; until then run headed under Xvfb there |
+| `--fingerprint-screen-width`, `--fingerprint-screen-height` | have, Windows and Linux | `004-screen-size-and-work-area`. Applied where the browser builds `ScreenInfo`, so `screen.*` and the `device-width` media queries agree |
+| Work area with a taskbar, menu bar or Dock for the reported platform; `--fingerprint-taskbar-height` | have, Windows and Linux | `004`. Checked for a Windows and a macOS persona on a Windows and on a Linux host. Also fixes `screen.availHeight == screen.height` on headless screens |
+| Window frame size in headless (`outerHeight` larger than `innerHeight`), window position | planned | Headless on Windows already reports a frame (outer 1100x800, inner 1084x705 in the probe). Headless on Linux reports one in height only (outer 1100x800, inner 1100x713) and an 800x600 screen unless the screen switches are given; until then run headed under Xvfb there |
 | Storage quota like a regular profile (`storage.estimate()`, storage buckets) | planned | Closes the storage-based incognito checks |
 
 ## Fonts
@@ -89,7 +89,7 @@ description, the design is open), **not planned**.
 
 | Capability | Status | Notes |
 |---|---|---|
-| SOCKS5 username/password (RFC 1929) | have, Windows | `005-socks5-username-password-auth`. Good, wrong and missing credentials checked against a local proxy. `--proxy-server=socks5://user:pass@host:port`, credentials percent-encoded |
+| SOCKS5 username/password (RFC 1929) | have, Windows and Linux | `005-socks5-username-password-auth`. Good, wrong and missing credentials checked against a local proxy. `--proxy-server=socks5://user:pass@host:port`, credentials percent-encoded |
 | QUIC through SOCKS5 (UDP ASSOCIATE) | not planned | Large; HTTP/2 over the TCP tunnel is what Chrome uses behind most SOCKS proxies anyway |
 | HTTP proxy credentials in `--proxy-server` | planned | Today the embedder answers the 407 through DevTools, which works but is visible as extra DevTools traffic |
 | WebRTC candidates show the proxy exit address | planned | Until then use `--webrtc-ip-handling-policy=disable_non_proxied_udp`, which hides the real address but leaves no public candidate |
@@ -118,8 +118,9 @@ These belong to FacetBrowser or to a deployment, not to the Chromium build:
 ## Order of work
 
 1. Rebuild the macOS and Windows packages with `003` to `007`.
-2. Run the switches of `003` to `006` and the SOCKS5 test on the Linux
-   package; test it headed under Xvfb with a Windows persona.
-3. Headless window frame, storage quota, WebRTC exit address.
+2. Test the Linux package headed under Xvfb with a Windows persona and on
+   the detection sites.
+3. `Intl` locale on Linux, headless window frame, storage quota, WebRTC exit
+   address.
 4. Coherent hardware scheme, WebGPU.
 5. Scope the `Runtime.enable` change; DevTools input research.
